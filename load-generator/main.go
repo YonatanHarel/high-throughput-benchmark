@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	target := flag.String("taget", "http://localhost:8080/process", "Target URL to send requests to")
+	target := flag.String("target", "http://localhost:8080/process", "Target URL to send requests to")
 	rate := flag.Int("rate", 1000000, "Number of requests per second")
 	connections := flag.Int("connections", 2000, "Number of concurrent connections")
 	duration := flag.Duration("duration", 30*time.Second, "Test duration")
