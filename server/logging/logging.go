@@ -41,7 +41,7 @@ func Init(cfg Config) {
 	std = &Logger{
 		level: 			lvl,
 		json: 			json,
-		disableReqLogs:	cfg.DisaleReqLogs,
+		disableReqLogs:	cfg.DisableReqLogs,
 		logger: 		log.New(os.Stdout, "", log.LstdFlags),
 	}
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -20,17 +19,30 @@ type ProcessRequest struct {
 
 type ProcessResponse struct {
 	Status string `json:"status"`
-	RecievedAt int64 `json:"recieved_at"`
+	ReceivedAt int64 `json:"recieved_at"`
 }
 
-func processHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Contectt-Type", "application/json")
-	resp := ProcessResponse{
-		Status: "ok",
-		RecievedAt: time.Now().Unix(),
-	}
+func processHandler(includeTimestamp bool, minimizeResponse bool) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 
-	_ = json.NewEncoder(w).Encode(resp)
+		resp := ProcessResponse{
+			Status: "ok",
+		}
+
+		if includeTimestamp && !minimizeResponse {
+			resp.ReceivedAt = time.Now().Unix()
+		}
+
+		if minimizeResponse {
+			// Just write "ok" to reduce JSON encoding overhead
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`"ok"`))
+			return
+		}
+
+		_ = json.NewEncoder(w).Encode(resp)
+	})
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +61,7 @@ func main() {
 	logging.Init(logging.Config{
 		Level: 				cfg.Logging.Level,
 		Format: 			cfg.Logging.Format,
-		disableReqLogs: 	cfg.Logging.DisableReqLogs,
+		DisableReqLogs: 	cfg.Logging.DisableReqLogs,
 	})
 	
 	port := cfg.Server.Port
@@ -65,7 +77,7 @@ func main() {
 	// Handlers with metrics instrumentation
 	ph := processHandler(cfg.Performance.IncludeTimestamp, cfg.Performance.MinimizeResponse)
 	mux.Handle("/process", metrics.InstrumentHandler("/process", ph))
-	mux.Handle("/health", healthHandler)
+	mux.HandleFunc("/health", healthHandler)
 
 	if cfg.Metrics.Enabled {
 		addr := fmt.Sprintf(":%d", cfg.Metrics.Port)
@@ -98,5 +110,4 @@ func main() {
 	if err := server.ListenAndServe(); err != nil {
 		logging.Errorf("server error: %v", err)
 	}
-}
 }
