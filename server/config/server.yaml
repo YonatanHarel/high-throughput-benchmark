@@ -1,0 +1,21 @@
+server:
+  port: 8080
+  read_timeout_ms: 100
+  write_timeout_ms: 100
+  max_connections: 100000
+  workers: 0                # 0 = use Go runtime defaults
+
+logging:
+  level: "info"             # "debug", "info", "warn", "error"
+  format: "plain"           # "plain" or "json"
+  disable_request_logs: true
+
+metrics:
+  enabled: true
+  port: 9090
+  path: "/metrics"
+
+performance:
+  parse_json: false         # true = slower
+  include_timestamp: true   # true = adds time.Now().Unix()
+  minimize_response: false  # true = "ok" only
