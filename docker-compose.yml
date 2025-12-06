@@ -1,28 +1,54 @@
-version: '3.9'
+version: "3.9"
+
 services:
-server:
-  build:
-    context: .
-    dockerfile: Dockerfile.server
-  volumes:
-    - ./server/config/server.yaml:/app/server/config/server.yaml
-  ports:
-    - "8080:8080"
-  environment:
-    - PORT=8080
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: ht-server
+    environment:
+      - PORT=8080
+    ports:
+      - "8080:8080"   # HTTP server
+      # - "9090:9090"   # metrics (Prometheus scrapes this)
+    volumes:
+      - ./server/config/server.yaml:/app/server/config/server.yaml:ro
+
+  load-generator:
+    build:
+      context: .
+      dockerfile: Dockerfile.load-generator
+    container_name: ht-loadgen
+    depends_on:
+      - server
+    # tweak these values as needed
+    command: [
+      "-target", "http://server:8080/process",
+      "-rate", "100",
+      "-connections", "200",
+      "-duration", "30s",
+      "-metrics-addr", ":9100"
+    ]
 
   prometheus:
     image: prom/prometheus:latest
+    container_name: ht-prometheus
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:
-      - "9090:9090"
-    depands_on:
+      - "9091:9090"   # Prometheus UI on localhost:9091
+    depends_on:
       - server
 
-    grafana:
-      image: grafana/grafana:latest
-      ports:
-        - "3000:3000"
-      depends_on:
-        - prometheus
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ht-grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards

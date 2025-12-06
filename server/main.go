@@ -80,21 +80,23 @@ func main() {
 	mux.HandleFunc("/health", healthHandler)
 
 	if cfg.Metrics.Enabled {
-		addr := fmt.Sprintf(":%d", cfg.Metrics.Port)
+		// addr := fmt.Sprintf(":%d", cfg.Metrics.Port)
 		path := cfg.Metrics.Path
 		if path == "" {
 			path = "/metrics"
 		}
+		mux.Handle(path, metrics.Handler())
+		logging.Infof("Metrics available at %s", path)
 
 		// Serve /metrics on a separate server/port for clarity
-		go func() {
-			metricsMux := http.NewServeMux()
-			metricsMux.Handle(path, metrics.Handler())
-			logging.Infof("Metrics server listening on %s%s", addr, path)
-			if err := http.ListenAndServe(addr, metricsMux); err != nil {
-				logging.Errorf("metrics server error: %v", err)
-			}
-		}()
+		// go func() {
+		// 	metricsMux := http.NewServeMux()
+		// 	metricsMux.Handle(path, metrics.Handler())
+		// 	logging.Infof("Metrics server listening on %s%s", addr, path)
+		// 	if err := http.ListenAndServe(addr, metricsMux); err != nil {
+		// 		logging.Errorf("metrics server error: %v", err)
+		// 	}
+		// }()
 	}
 
 	addr := fmt.Sprintf(":%d", port)

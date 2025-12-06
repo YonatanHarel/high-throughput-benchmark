@@ -12,10 +12,10 @@ import (
 var (
 	httpRequestsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "http_request_total",
+			Name: "http_requests_total",
 			Help: "Total number of HTTP requests processed, labeled by path, method, status.",
 		},
-		[]string{"method", "endpoint", "status"},
+		[]string{"path", "method", "status"},
 	)
 
 	httpRequestDuration = prometheus.NewHistogramVec(

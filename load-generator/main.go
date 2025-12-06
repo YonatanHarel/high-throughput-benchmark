@@ -17,8 +17,22 @@ func main() {
 	connections := flag.Int("connections", 2000, "Number of concurrent connections")
 	duration := flag.Duration("duration", 30*time.Second, "Test duration")
 	payload := flag.String("payload", "{}", "JSON payload for POST requests")
+	metricsAddr := flag.String("metrics-addr", ":9100", "Address for load generator metrics (e.g. :9100)")
 
 	flag.Parse()
+
+	loadgenConfiguredRate.Set(float64(*rate))
+	loadgenWorkers.Set(float64(*connections))
+
+	// metrics server
+	go func() {
+		mux := http.NewServeMux()
+		mux.Handle("/metrics", metricsHandler())
+		if err := http.ListenAndServe(*metricsAddr, mux); err != nil {
+			log.Printf("metrics server error: %v", err)
+		}
+	}()
+
 
 	if *connections <= 0 {
 		log.Fatalf("connections muxt be > 0")
@@ -73,18 +87,23 @@ func worker(client *http.Client, target string, perWorkerRate float64, stop time
 
 	for time.Now().Before(stop) {
 		<-ticker.C
+		start := time.Now()
 
 		req, err := http.NewRequest(http.MethodPost, target, bytes.NewReader(payload))
 		if err != nil {
+			loadgenRequestsTotal.WithLabelValues("error").Inc()
 			continue
 		}
 		req.Header.Set("Content-Type", "application/json")
 
 		resp, err := client.Do(req)
 		if err != nil {
+			loadgenRequestsTotal.WithLabelValues("error").Inc()
 			continue
 		}
 		_ = resp.Body.Close()
+		loadgenRequestsTotal.WithLabelValues("success").Inc()
+        loadgenRequestDuration.Observe(time.Since(start).Seconds())
 	}
 }
 

@@ -1,8 +1,0 @@
-global:
-  scarap_interval: 5s
-
-scrape_configs:
-  - job_name: 'go-server'
-    static_configs:
-      - targets: 
-        - 'server:9090'
